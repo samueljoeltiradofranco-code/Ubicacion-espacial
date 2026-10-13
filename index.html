@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AstroEspacio: Evaluación & Aprendizaje de Ubicación Espacial Infantil</title>
+  <meta name="description" content="Plataforma interactiva para evaluar y fortalecer la orientación espacial (derecha, izquierda, arriba, abajo) y habilidades cognitivas en niños con reporte pedagógico.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Canvas para confeti -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- Barra de navegación superior -->
+  <header class="top-nav no-print">
+    <div class="nav-brand" id="navHomeBtn">
+      <span class="brand-icon">🚀</span>
+      <div class="brand-text">
+        <span class="brand-title">AstroEspacio</span>
+        <span class="brand-sub">Gimnasio Cognitivo & Espacial</span>
+      </div>
+    </div>
+
+    <div class="nav-player-pill hidden" id="navPlayerPill">
+      <span class="player-avatar-badge" id="navPlayerAvatar">🧑‍🚀</span>
+      <span class="player-name-badge" id="navPlayerName">Explorador</span>
+      <span class="stars-counter">⭐ <span id="navStarsCount">0</span></span>
+    </div>
+
+    <div class="nav-controls">
+      <button class="icon-btn" id="soundToggleBtn" title="Activar/Silenciar sonido" aria-label="Sonido">
+        <span id="soundIcon">🔊</span>
+      </button>
+      <button class="icon-btn" id="voiceToggleBtn" title="Activar/Silenciar voz guía" aria-label="Voz">
+        <span id="voiceIcon">🗣️</span>
+      </button>
+      <button class="btn btn-outline btn-sm hidden" id="exitGameBtn">
+        ⬅ Salir al Menú
+      </button>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal de Vistas -->
+  <main class="main-container">
+
+    <!-- ========================================== -->
+    <!-- 1. PANTALLA DE BIENVENIDA / PERFIL DEL NIÑO -->
+    <!-- ========================================== -->
+    <section class="screen active" id="screenWelcome">
+      <div class="welcome-card card">
+        <div class="hero-header">
+          <div class="mascot-animation">
+            <div class="mascot-bubble">¡Hola, pequeño explorador! 🌟 ¿Listo para conquistar el espacio?</div>
+            <div class="mascot-character" id="mainMascot">🧑‍🚀</div>
+          </div>
+          <h1 class="hero-title">¡Misión Ubicación Espacial!</h1>
+          <p class="hero-desc">
+            Aprende a reconocer <strong>Arriba</strong>, <strong>Abajo</strong>, <strong>Izquierda</strong> y <strong>Derecha</strong> mientras fortaleces tu memoria, atención y agilidad mental.
+          </p>
+        </div>
+
+        <form id="childProfileForm" class="profile-form" onsubmit="event.preventDefault();">
+          <h2 class="form-section-title">1. ¿Quién va a jugar hoy?</h2>
+          
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="childName">Nombre o Apodo del Explorador:</label>
+              <input type="text" id="childName" placeholder="Ej: Mateo, Sofía, Lucas..." required maxlength="25">
+            </div>
+
+            <div class="form-group">
+              <label for="childAge">Edad:</label>
+              <select id="childAge" required>
+                <option value="4">4 años (Inicial)</option>
+                <option value="5">5 años (Preescolar)</option>
+                <option value="6" selected>6 años (1° Primaria)</option>
+                <option value="7">7 años (2° Primaria)</option>
+                <option value="8">8 años (3° Primaria)</option>
+                <option value="9">9+ años (Primaria)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>Mano con la que escribe/dibuja (Lateralidad motora):</label>
+              <div class="radio-pill-group">
+                <label class="radio-pill">
+                  <input type="radio" name="childHand" value="diestro" checked>
+                  <span>✍️ Mano Derecha</span>
+                </label>
+                <label class="radio-pill">
+                  <input type="radio" name="childHand" value="zurdo">
+                  <span>✋ Mano Izquierda</span>
+                </label>
+                <label class="radio-pill">
+                  <input type="radio" name="childHand" value="ambidiestro">
+                  <span>✨ Ambas / No definido</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Elige tu Avatar de la tripulación:</label>
+            <div class="avatar-selector" id="avatarSelector">
+              <button type="button" class="avatar-opt selected" data-avatar="🧑‍🚀">🧑‍🚀</button>
+              <button type="button" class="avatar-opt" data-avatar="👩‍🚀">👩‍🚀</button>
+              <button type="button" class="avatar-opt" data-avatar="🤖">🤖</button>
+              <button type="button" class="avatar-opt" data-avatar="🦊">🦊</button>
+              <button type="button" class="avatar-opt" data-avatar="🐱">🐱</button>
+              <button type="button" class="avatar-opt" data-avatar="👽">👽</button>
+            </div>
+          </div>
+
+          <div class="mode-selection-container">
+            <h2 class="form-section-title">2. ¿Qué deseas hacer?</h2>
+            <div class="mode-cards">
+              <div class="mode-card featured" id="startFullEvalBtn">
+                <div class="mode-badge">Recomendado</div>
+                <div class="mode-icon">🏆</div>
+                <div class="mode-info">
+                  <h3>Evaluación Completa con Reporte</h3>
+                  <p>Realiza los 4 retos consecutivos para medir orientación, memoria, atención y recibir un informe psicopedagógico completo.</p>
+                  <span class="mode-tag">⏱️ ~5 a 7 minutos</span>
+                </div>
+              </div>
+
+              <div class="mode-card" id="startFreeModeBtn">
+                <div class="mode-icon">🎮</div>
+                <div class="mode-info">
+                  <h3>Modo Libre y Práctica</h3>
+                  <p>Aprende primero en la Escuela Espacial o practica el minijuego que prefieras sin límite de tiempo.</p>
+                  <span class="mode-tag">🎯 Práctica Guiada</span>
+                </div>
+              </div>
+
+              <!-- Tarjeta de Juego Arcade Interactivo en Tiempo Real -->
+              <a href="aventura.html" class="mode-card" style="text-decoration: none; border-color: #EC4899; background: linear-gradient(180deg, #FFF1F2 0%, #FFFFFF 100%);">
+                <div class="mode-badge" style="background: #EC4899; color: white;">¡Modo Arcade!</div>
+                <div class="mode-icon">🚀🕹️</div>
+                <div class="mode-info">
+                  <h3 style="color: #9F1239;">AstroPiloto: Nave en Vivo</h3>
+                  <p style="color: #475569;">Pilota con joystick y teclado en 2D. Copiloto con voz en vivo.</p>
+                  <span class="mode-tag" style="color: #BE185D;">⚡ Acción continua</span>
+                </div>
+              </a>
+
+              <!-- Tarjeta de Juego con Cámara Web y Movimiento Corporal -->
+              <a href="camara.html" class="mode-card" style="text-decoration: none; border-color: #10B981; background: linear-gradient(180deg, #ECFDF5 0%, #FFFFFF 100%);">
+                <div class="mode-badge" style="background: #10B981; color: white;">¡Con Cámara Web! 📷</div>
+                <div class="mode-icon">🏃‍♂️📷</div>
+                <div class="mode-info">
+                  <h3 style="color: #065F46;">AstroEspejo: Mueve tu Cuerpo</h3>
+                  <p style="color: #475569;">¡Usa tu cuerpo y tus manos! Levanta los brazos o muévete a los lados frente a la cámara.</p>
+                  <span class="mode-tag" style="color: #059669;">✨ Visión artificial interactiva</span>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Historial de reportes previos guardados -->
+          <div class="history-quick-link" id="viewSavedReportsBtnContainer">
+            <button type="button" class="btn btn-ghost" id="viewSavedReportsBtn">
+              📋 Ver historial de reportes anteriores guardados
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 2. PANTALLA: MENÚ DE ACTIVIDADES / MODO LIBRE -->
+    <!-- ========================================== -->
+    <section class="screen hidden" id="screenMenu">
+      <div class="menu-container">
+        <div class="section-banner">
+          <h2>Centro de Entrenamiento Galáctico</h2>
+          <p>Selecciona una estación espacial para entrenar o inicia la evaluación completa.</p>
+        </div>
+
+        <div class="games-grid">
+          <!-- Tarjeta 0: Escuela Espacial / Tutorial -->
+          <div class="game-card learn-card" data-action="tutorial">
+            <div class="game-card-badge tutorial-badge">Aprender</div>
+            <div class="game-card-icon">🎓</div>
+            <h3 class="game-card-title">1. Escuela Espacial</h3>
+            <p class="game-card-desc">Aprende con animaciones y voz qué es Arriba, Abajo, Izquierda y Derecha.</p>
+            <div class="game-card-tags">
+              <span>Conceptos básicos</span>
+              <span>Con voz guiada</span>
+            </div>
+            <button class="btn btn-secondary w-100">Entrar a Clase 📚</button>
+          </div>
+
+          <!-- Tarjeta 1: Estación de Dirección -->
+          <div class="game-card" data-action="game-direct">
+            <div class="game-card-badge">Orientación Absoluta</div>
+            <div class="game-card-icon">🧭</div>
+            <h3 class="game-card-title">2. El Radar de las Estrellas</h3>
+            <p class="game-card-desc">Escucha la orden y toca rápido hacia dónde debe volar el cohete espacial.</p>
+            <div class="game-card-tags">
+              <span>Orientación cardinal</span>
+              <span>Discriminación auditiva</span>
+            </div>
+            <button class="btn btn-primary w-100">Jugar Radar 🌟</button>
+          </div>
+
+          <!-- Tarjeta 2: Laberinto -->
+          <div class="game-card" data-action="game-maze">
+            <div class="game-card-badge">Memoria y Planificación</div>
+            <div class="game-card-icon">🧩</div>
+            <h3 class="game-card-title">3. El Laberinto Cósmico</h3>
+            <p class="game-card-desc">Programa los pasos del astronauta para recoger los cristales y llegar a la nave.</p>
+            <div class="game-card-tags">
+              <span>Planificación espacial</span>
+              <span>Memoria de trabajo</span>
+            </div>
+            <button class="btn btn-primary w-100">Jugar Laberinto 🚀</button>
+          </div>
+
+          <!-- Tarjeta 3: Reacción Rápida -->
+          <div class="game-card" data-action="game-reaction">
+            <div class="game-card-badge">Atención e Impulsividad</div>
+            <div class="game-card-icon">⚡</div>
+            <h3 class="game-card-title">4. Reflejos de Asteroide</h3>
+            <p class="game-card-desc">¡Reacciona a la dirección correcta antes de que se escape la estrella fugaz!</p>
+            <div class="game-card-tags">
+              <span>Velocidad de procesamiento</span>
+              <span>Control inhibitorio</span>
+            </div>
+            <button class="btn btn-primary w-100">Jugar Reflejos ⚡</button>
+          </div>
+
+          <!-- Tarjeta 4: Perspectiva y Espejo -->
+          <div class="game-card" data-action="game-perspective">
+            <div class="game-card-badge">Lateralidad Relativa</div>
+            <div class="game-card-icon">🪞</div>
+            <h3 class="game-card-title">5. El Espejo del Robot</h3>
+            <p class="game-card-desc">¿Qué mano tiene levantada el robot amigo? Aprende izquierda y derecha en otros.</p>
+            <div class="game-card-tags">
+              <span>Descentración espacial</span>
+              <span>Rotación mental</span>
+            </div>
+          <!-- Tarjeta 5: AstroPiloto Aventura Interactiva en Tiempo Real -->
+          <div class="game-card" style="border-color: #EC4899; background: linear-gradient(180deg, #FDF2F8 0%, #FFFFFF 100%);">
+            <div class="game-card-badge" style="background: #FCE7F3; color: #BE185D;">¡En Tiempo Real! ⚡</div>
+            <div class="game-card-icon">🚀🕹️</div>
+            <h3 class="game-card-title">6. AstroPiloto (Simulador)</h3>
+            <p class="game-card-desc">¡Pilota una nave espacial en vivo! Usa el joystick o las flechas para responder a las órdenes de tu copiloto.</p>
+            <div class="game-card-tags">
+              <span>Física 2D continua</span>
+              <span>Joystick táctil</span>
+              <span>Voz en vivo</span>
+            </div>
+            <a href="aventura.html" class="btn btn-primary w-100" style="background: linear-gradient(180deg, #EC4899 0%, #DB2777 100%); box-shadow: 0 4px 0 #9D174D; text-decoration: none;">
+              ¡Pilotar Nave en Vivo! 🚀
+            </a>
+          </div>
+
+          <!-- Tarjeta 6: AstroEspejo con Cámara Web -->
+          <div class="game-card" style="border-color: #10B981; background: linear-gradient(180deg, #ECFDF5 0%, #FFFFFF 100%);">
+            <div class="game-card-badge" style="background: #D1FAE5; color: #065F46;">¡Con Cámara Web! 📷</div>
+            <div class="game-card-icon">🏃‍♂️📷</div>
+            <h3 class="game-card-title">7. AstroAmigos con Cámara</h3>
+            <p class="game-card-desc">¡Toca al Pingüinito, Pandita, Elefantito y Lobito con tus manos y tu cuerpo frente a la cámara web!</p>
+            <div class="game-card-tags">
+              <span>Visión artificial</span>
+              <span>Movimiento corporal</span>
+              <span>Reporte psicomotor</span>
+            </div>
+            <a href="camara.html" class="btn btn-secondary w-100" style="text-decoration: none;">
+              ¡Jugar con la Cámara! 📷
+            </a>
+          </div>
+        </div>
+
+        <div class="menu-bottom-cta">
+          <div class="cta-banner">
+            <div>
+              <h3>¿Listo para tu prueba oficial?</h3>
+              <p>Mide todas tus destrezas y genera tu reporte psicopedagógico con medalla.</p>
+            </div>
+            <button class="btn btn-gold btn-lg" id="btnLaunchFullEvalFromMenu">
+              🏆 Iniciar Evaluación Completa
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 3. PANTALLA: ESCUELA ESPACIAL (TUTORIAL)   -->
+    <!-- ========================================== -->
+    <section class="screen hidden" id="screenTutorial">
+      <div class="tutorial-wrapper card">
+        <div class="tutorial-header">
+          <div class="step-indicator">
+            <span class="step-dot active" data-step="0"></span>
+            <span class="step-dot" data-step="1"></span>
+            <span class="step-dot" data-step="2"></span>
+            <span class="step-dot" data-step="3"></span>
+          </div>
+          <button class="icon-btn voice-repeat-btn" id="tutorialRepeatVoiceBtn" title="Repetir voz">
+            🔊 Escuchar
+          </button>
+        </div>
+
+        <div class="tutorial-content" id="tutorialContent">
+          <!-- Contenido dinámico inyectado por JS -->
+        </div>
+
+        <div class="tutorial-controls">
+          <button class="btn btn-outline" id="tutorialPrevBtn" disabled>⬅ Anterior</button>
+          <button class="btn btn-primary btn-lg" id="tutorialNextBtn">Siguiente ➡</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 4. PANTALLA: JUEGO 1 - RADAR DE DIRECCIONES -->
+    <!-- ========================================== -->
+    <section class="screen hidden" id="screenGameDirect">
+      <div class="game-screen-layout">
+        <!-- Barra de progreso del juego -->
+        <div class="game-status-bar">
+          <div class="status-left">
+            <span class="game-tag">Misión: Radar Espacial</span>
+            <span class="round-counter">Pregunta <span id="directCurrentRound">1</span> de <span id="directTotalRounds">8</span></span>
+          </div>
+          <div class="progress-bar-wrapper">
+            <div class="progress-bar-fill" id="directProgressBar"></div>
+          </div>
+          <div class="status-right">
+            <span class="score-display">⭐ <span id="directScore">0</span></span>
+          </div>
+        </div>
+
+        <!-- Instrucción con botón de voz para niños -->
+        <div class="instruction-banner">
+          <button class="voice-btn-large" id="directVoiceBtn" title="Escuchar orden">
+            <span class="pulse-ring"></span>
+            🔊
+          </button>
+          <div class="instruction-text-box">
+            <span class="instruction-label">Instrucción:</span>
+            <h2 class="instruction-text" id="directInstructionText">¡Toca la dirección ARRIBA!</h2>
+          </div>
+        </div>
+
+        <!-- Escena Interactiva de Dirección -->
+        <div class="direct-arena-container">
+          <div class="direct-cross-pad">
+            <!-- Arriba -->
+            <button class="direction-target target-up" data-dir="arriba" id="targetUp">
+              <span class="dir-icon">⬆️</span>
+              <span class="dir-text">ARRIBA</span>
+              <span class="dir-visual-hint">☁️ Sol / Cielo</span>
+            </button>
+
+            <!-- Centro con Cohete -->
+            <div class="direct-center-anchor" id="directCenterRocket">
+              <div class="rocket-character">🚀</div>
+              <span class="center-label">CENTRO</span>
+            </div>
+
+            <!-- Abajo -->
+            <button class="direction-target target-down" data-dir="abajo" id="targetDown">
+              <span class="dir-icon">⬇️</span>
+              <span class="dir-text">ABAJO</span>
+              <span class="dir-visual-hint">🌱 Tierra / Planeta</span>
+            </button>
+
+            <!-- Izquierda -->
+            <button class="direction-target target-left" data-dir="izquierda" id="targetLeft">
+              <span class="dir-icon">⬅️</span>
+              <span class="dir-text">IZQUIERDA</span>
+              <span class="dir-visual-hint">🔴 Pulsera Roja</span>
+            </button>
+
+            <!-- Derecha -->
+            <button class="direction-target target-right" data-dir="derecha" id="targetRight">
+              <span class="dir-icon">➡️</span>
+              <span class="dir-text">DERECHA</span>
+              <span class="dir-visual-hint">🟢 Pulsera Verde</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="feedback-toast hidden" id="directFeedback"></div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 5. PANTALLA: JUEGO 2 - LABERINTO CÓSMICO   -->
+    <!-- ========================================== -->
+    <section class="screen hidden" id="screenGameMaze">
+      <div class="game-screen-layout">
+        <div class="game-status-bar">
+          <div class="status-left">
+            <span class="game-tag">Misión: Laberinto Cósmico</span>
+            <span class="round-counter">Nivel <span id="mazeCurrentLevel">1</span> de <span id="mazeTotalLevels">4</span></span>
+          </div>
+          <div class="progress-bar-wrapper">
+            <div class="progress-bar-fill" id="mazeProgressBar"></div>
+          </div>
+          <div class="status-right">
+            <span class="score-display">💎 <span id="mazeGemsCount">0</span> / <span id="mazeTotalGems">0</span></span>
+          </div>
+        </div>
+
+        <div class="instruction-banner">
+          <button class="voice-btn-large" id="mazeVoiceBtn" title="Escuchar objetivo">
+            <span class="pulse-ring"></span>
+            🔊
+          </button>
+          <div class="instruction-text-box">
+            <span class="instruction-label">Tu Misión:</span>
+            <h2 class="instruction-text" id="mazeInstructionText">Guía al astronauta con las flechas hasta la nave espacial recolectando los cristales.</h2>
+          </div>
+        </div>
+
+        <div class="maze-play-area">
+          <div class="maze-board-wrapper">
+            <div class="maze-grid" id="mazeGrid">
+              <!-- Celdas creadas dinámicamente -->
+            </div>
+          </div>
+
+          <!-- Controles de Navegación Espacial táctiles y grandes -->
+          <div class="maze-controls-panel">
+            <h4 class="controls-title">Controles Espaciales</h4>
+            <div class="d-pad">
+              <button class="d-pad-btn d-up" data-move="arriba" id="dpadUp" aria-label="Mover arriba">
+                <span>⬆️</span>
+                <small>Arriba</small>
+              </button>
+              <div class="d-pad-row">
+                <button class="d-pad-btn d-left" data-move="izquierda" id="dpadLeft" aria-label="Mover izquierda">
+                  <span>⬅️</span>
+                  <small>Izquierda</small>
+                </button>
+                <div class="d-pad-center">🎮</div>
+                <button class="d-pad-btn d-right" data-move="derecha" id="dpadRight" aria-label="Mover derecha">
+                  <span>➡️</span>
+                  <small>Derecha</small>
+                </button>
+              </div>
+              <button class="d-pad-btn d-down" data-move="abajo" id="dpadDown" aria-label="Mover abajo">
+                <span>⬇️</span>
+                <small>Abajo</small>
+              </button>
+            </div>
+            <p class="keyboard-tip">💡 También puedes usar las <strong>flechas del teclado</strong>.</p>
+          </div>
+        </div>
+
+        <div class="feedback-toast hidden" id="mazeFeedback"></div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 6. PANTALLA: JUEGO 3 - REFLEJOS / ATENCIÓN -->
+    <!-- ========================================== -->
+    <section class="screen hidden" id="screenGameReaction">
+      <div class="game-screen-layout">
+        <div class="game-status-bar">
+          <div class="status-left">
+            <span class="game-tag">Misión: Reflejos de Asteroide</span>
+            <span class="round-counter">Estímulo <span id="reactRoundCounter">1</span> de <span id="reactTotalRounds">10</span></span>
+          </div>
+          <div class="progress-bar-wrapper">
+            <div class="progress-bar-fill" id="reactProgressBar"></div>
+          </div>
+          <div class="status-right">
+            <span class="score-display">⚡ <span id="reactAvgTime">0</span> ms</span>
+          </div>
+        </div>
+
+        <div class="instruction-banner">
+          <button class="voice-btn-large" id="reactVoiceBtn" title="Escuchar regla">
+            <span class="pulse-ring"></span>
+            🔊
+          </button>
+          <div class="instruction-text-box">
+            <span class="instruction-label">Regla de Reflejo:</span>
+            <h2 class="instruction-text" id="reactInstructionText">¡Mira la flecha y presiona el botón hacia donde apunta tan rápido como puedas!</h2>
+          </div>
+        </div>
+
+        <div class="reaction-arena">
+          <!-- Temporizador visual circular -->
+          <div class="stimulus-display" id="reactionStimulusDisplay">
+            <div class="stimulus-card" id="stimulusCard">
+              <span class="stimulus-waiting">¡Prepárate! 👀</span>
+            </div>
+            <div class="time-gauge">
+              <div class="time-gauge-fill" id="reactTimeBar"></div>
+            </div>
+          </div>
+
+          <!-- Botones de respuesta rápida -->
+          <div class="reaction-buttons-grid">
+            <button class="react-btn react-left" data-dir="izquierda" id="reactBtnLeft">
+              <span class="react-icon">⬅️</span>
+              <span class="react-label">IZQUIERDA</span>
+            </button>
+            <button class="react-btn react-up" data-dir="arriba" id="reactBtnUp">
+              <span class="react-icon">⬆️</span>
+              <span class="react-label">ARRIBA</span>
+            </button>
+            <button class="react-btn react-down" data-dir="abajo" id="reactBtnDown">
+              <span class="react-icon">⬇️</span>
+              <span class="react-label">ABAJO</span>
+            </button>
+            <button class="react-btn react-right" data-dir="derecha" id="reactBtnRight">
+              <span class="react-icon">➡️</span>
+              <span class="react-label">DERECHA</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="feedback-toast hidden" id="reactFeedback"></div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 7. PANTALLA: JUEGO 4 - PERSPECTIVA / ESPEJO -->
+    <!-- ========================================== -->
+    <section class="screen hidden" id="screenGamePerspective">
+      <div class="game-screen-layout">
+        <div class="game-status-bar">
+          <div class="status-left">
+            <span class="game-tag">Misión: El Espejo del Robot</span>
+            <span class="round-counter">Reto <span id="perspRoundCounter">1</span> de <span id="perspTotalRounds">6</span></span>
+          </div>
+          <div class="progress-bar-wrapper">
+            <div class="progress-bar-fill" id="perspProgressBar"></div>
+          </div>
+          <div class="status-right">
+            <span class="score-display">⭐ <span id="perspScore">0</span></span>
+          </div>
+        </div>
+
+        <div class="instruction-banner">
+          <button class="voice-btn-large" id="perspVoiceBtn" title="Escuchar pregunta">
+            <span class="pulse-ring"></span>
+            🔊
+          </button>
+          <div class="instruction-text-box">
+            <span class="instruction-label">Pregunta de Perspectiva:</span>
+            <h2 class="instruction-text" id="perspInstructionText">El robot te mira de frente. ¿Qué mano tiene levantada?</h2>
+          </div>
+        </div>
+
+        <div class="perspective-arena">
+          <div class="robot-stage-box" id="robotStage">
+            <!-- Visualización dinámica del Robot con brazo levantado -->
+            <div class="robot-character-frame">
+              <div class="robot-svg-container" id="robotSvgContainer">
+                <!-- SVG animado inyectado por JS -->
+              </div>
+              <div class="robot-orientation-pill" id="robotOrientationBadge">Mirando hacia TI (Frente a frente)</div>
+            </div>
+          </div>
+
+          <div class="perspective-choice-panel">
+            <p class="choice-prompt">Elige la respuesta correcta:</p>
+            <div class="perspective-buttons">
+              <button class="btn btn-choice choice-left" data-hand="izquierda" id="choiceLeftHand">
+                <span class="hand-symbol">✋</span>
+                <span class="hand-name">Mano IZQUIERDA del Robot</span>
+                <span class="hand-hint">(Lado de su corazón)</span>
+              </button>
+
+              <button class="btn btn-choice choice-right" data-hand="derecha" id="choiceRightHand">
+                <span class="hand-symbol">🤚</span>
+                <span class="hand-name">Mano DERECHA del Robot</span>
+                <span class="hand-hint">(Lado contrario a tu derecha)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="feedback-toast hidden" id="perspFeedback"></div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 8. PANTALLA: REPORTE COGNITIVO INTEGRAL    -->
+    <!-- ========================================== -->
+    <section class="screen hidden" id="screenReport">
+      <div class="report-container">
+        
+        <!-- Barra de acciones del reporte -->
+        <div class="report-action-bar no-print">
+          <button class="btn btn-outline" id="reportBackMenuBtn">⬅ Volver al Menú</button>
+          <div class="report-actions-right">
+            <button class="btn btn-secondary" id="reportPlayAgainBtn">🔄 Repetir Evaluación</button>
+            <button class="btn btn-primary" id="reportPrintBtn">🖨️ Imprimir / Guardar en PDF</button>
+          </div>
+        </div>
+
+        <!-- Documento de Reporte Oficial (optimizado para pantalla e impresión A4) -->
+        <article class="report-sheet" id="printableReportSheet">
+          
+          <!-- Encabezado Clínico / Pedagógico -->
+          <header class="report-doc-header">
+            <div class="report-brand">
+              <span class="report-logo">🧠🚀</span>
+              <div>
+                <h1 class="report-main-title">INFORME DE EVALUACIÓN PSICOPEDAGÓGICA</h1>
+                <p class="report-subtitle">Desarrollo de Ubicación Espacial y Funciones Cognitivas en la Infancia</p>
+              </div>
+            </div>
+            <div class="report-meta-box">
+              <div><strong>Fecha:</strong> <span id="repDate">--/--/----</span></div>
+              <div><strong>Hora:</strong> <span id="repTime">--:--</span></div>
+              <div><strong>Folio ID:</strong> <span id="repFolio">ASTRO-0000</span></div>
+            </div>
+          </header>
+
+          <!-- Ficha de Datos del Niño -->
+          <section class="report-section child-info-grid">
+            <div class="info-cell">
+              <span class="cell-label">Nombre del Explorador(a):</span>
+              <span class="cell-value" id="repChildName">Mateo</span>
+            </div>
+            <div class="info-cell">
+              <span class="cell-label">Edad cronológica:</span>
+              <span class="cell-value" id="repChildAge">6 años</span>
+            </div>
+            <div class="info-cell">
+              <span class="cell-label">Dominancia Motriz Reportada:</span>
+              <span class="cell-value" id="repChildHand">Diestro</span>
+            </div>
+            <div class="info-cell">
+              <span class="cell-label">Tiempo total de sesión:</span>
+              <span class="cell-value" id="repDuration">5 min 20 s</span>
+            </div>
+          </section>
+
+          <!-- Resumen de Nivel Global -->
+          <section class="report-section global-index-section">
+            <div class="index-score-box">
+              <div class="circular-score-wrapper">
+                <svg viewBox="0 0 100 100" class="score-circular-svg">
+                  <circle class="score-circle-bg" cx="50" cy="50" r="42"></circle>
+                  <circle class="score-circle-progress" id="repCircleScore" cx="50" cy="50" r="42"></circle>
+                </svg>
+                <div class="score-number-inside">
+                  <span id="repGlobalScore">92</span>
+                  <small>/100</small>
+                </div>
+              </div>
+              <div class="index-details">
+                <span class="index-badge" id="repGlobalLevelBadge">Nivel Consolidado</span>
+                <h3 class="index-title" id="repGlobalLevelTitle">Madurez Espacial Óptima para su Rango Etario</h3>
+                <p class="index-summary" id="repGlobalSummary">
+                  El niño demuestra una comprensión sólida de las relaciones espaciales básicas y muestra gran capacidad de planificación y control atencional.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- Gráfico de Radar de Competencias Cognitivas -->
+          <section class="report-section">
+            <h2 class="section-heading">1. Perfil Neurocognitivo y Dimensional</h2>
+            <div class="chart-and-table-layout">
+              <div class="radar-chart-container">
+                <canvas id="radarChartCanvas" width="340" height="300"></canvas>
+                <div class="chart-caption">Polígono de Rendimiento por Habilidad (%)</div>
+              </div>
+
+              <div class="skills-breakdown-table">
+                <table class="report-table">
+                  <thead>
+                    <tr>
+                      <th>Dimensión Cognitiva</th>
+                      <th>Puntaje</th>
+                      <th>Tiempo Medio</th>
+                      <th>Diagnóstico Etario</th>
+                    </tr>
+                  </thead>
+                  <tbody id="repTableBody">
+                    <!-- Filas inyectadas dinámicamente -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Análisis Específico de Ubicación Espacial -->
+          <section class="report-section">
+            <h2 class="section-heading">2. Análisis de Coordenadas: Vertical vs Lateral</h2>
+            <div class="axes-comparison-grid">
+              <div class="axis-card">
+                <div class="axis-icon">↕️</div>
+                <div class="axis-content">
+                  <h4>Eje Vertical (Arriba / Abajo)</h4>
+                  <div class="progress-bar-sm"><div class="bar-fill" id="repBarVertical" style="width: 90%;"></div></div>
+                  <p id="repTextVertical">Dominio consolidado. Distingue con rapidez y naturalidad el plano superior e inferior.</p>
+                </div>
+              </div>
+
+              <div class="axis-card">
+                <div class="axis-icon">↔️</div>
+                <div class="axis-content">
+                  <h4>Eje Lateral (Izquierda / Derecha)</h4>
+                  <div class="progress-bar-sm"><div class="bar-fill" id="repBarLateral" style="width: 75%;"></div></div>
+                  <p id="repTextLateral">En proceso evolutivo. La diferenciación izquierda-derecha presenta vacilaciones esperadas a esta edad.</p>
+                </div>
+              </div>
+
+              <div class="axis-card">
+                <div class="axis-icon">🪞</div>
+                <div class="axis-content">
+                  <h4>Descentración / Perspectiva Externa</h4>
+                  <div class="progress-bar-sm"><div class="bar-fill" id="repBarPerspective" style="width: 70%;"></div></div>
+                  <p id="repTextPerspective">Capacidad de reconocer la orientación en otro individuo u objeto especular.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Recomendaciones Pedagógicas Personalizadas -->
+          <section class="report-section">
+            <h2 class="section-heading">3. Orientaciones y Recomendaciones Prácticas (Casa y Escuela)</h2>
+            <div class="recommendations-container" id="repRecommendationsList">
+              <!-- Recomendaciones inyectadas dinámicamente -->
+            </div>
+          </section>
+
+          <!-- Diploma para el Niño -->
+          <section class="report-section diploma-wrapper">
+            <div class="diploma-box">
+              <div class="diploma-corner corner-tl">⭐</div>
+              <div class="diploma-corner corner-tr">⭐</div>
+              <div class="diploma-corner corner-bl">⭐</div>
+              <div class="diploma-corner corner-br">⭐</div>
+              
+              <div class="diploma-header">
+                <span class="diploma-medal">🥇</span>
+                <h2>DIPLOMA OFICIAL DE NAVEGANTE ESPACIAL</h2>
+              </div>
+              <p class="diploma-text">Se otorga con orgullo al intrépido explorador(a):</p>
+              <div class="diploma-child-name" id="diplomaName">MATEO</div>
+              <p class="diploma-desc">
+                Por demostrar gran valentía, brillante memoria, rápidos reflejos y excelente dominio del espacio cósmico (Arriba, Abajo, Izquierda y Derecha).
+              </p>
+              <div class="diploma-signature-row">
+                <div class="signature-col">
+                  <div class="sig-line">🚀 Centro AstroEspacial</div>
+                  <span>Certificación de Habilidad</span>
+                </div>
+                <div class="signature-seal">
+                  <div class="seal-inner">MISIÓN<br>CUMPLIDA</div>
+                </div>
+                <div class="signature-col">
+                  <div class="sig-line" id="diplomaDate">13 Octubre 2026</div>
+                  <span>Fecha de Graduación</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <footer class="report-doc-footer">
+            <p>Este informe es una herramienta pedagógica y de tamizaje lúdico de orientación espacial y funciones ejecutivas. No constituye un diagnóstico médico o neurológico aislado.</p>
+          </footer>
+        </article>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 9. MODAL: HISTORIAL DE SESIONES GUARDADAS  -->
+    <!-- ========================================== -->
+    <div class="modal-backdrop hidden" id="historyModal">
+      <div class="modal-window card">
+        <div class="modal-header">
+          <h3>📁 Historial de Evaluaciones Guardadas</h3>
+          <button class="modal-close-btn" id="closeHistoryModalBtn">✕</button>
+        </div>
+        <div class="modal-body">
+          <div id="savedReportsList" class="saved-reports-container">
+            <!-- Informes guardados en localStorage -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Scripts -->
+  <script src="js/sound.js"></script>
+  <script src="js/speech.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/tutorial.js"></script>
+  <script src="js/game-direct.js"></script>
+  <script src="js/game-maze.js"></script>
+  <script src="js/game-reaction.js"></script>
+  <script src="js/game-perspective.js"></script>
+  <script src="js/report.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
