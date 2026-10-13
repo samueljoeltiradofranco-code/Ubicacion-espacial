@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AstroPiloto: Aventura Interactiva de Ubicación Espacial</title>
+  <meta name="description" content="Juego interactivo en tiempo real para niños: pilota tu nave espacial, aprende arriba, abajo, izquierda y derecha en vivo con misiones y reporte de vuelo.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --primary-light: #6366F1;
+      --accent-gold: #F59E0B;
+      --success: #10B981;
+      --danger: #EF4444;
+      --info: #06B6D4;
+      --dir-up: #3B82F6;
+      --dir-down: #10B981;
+      --dir-left: #EF4444;
+      --dir-right: #F59E0B;
+      --font-fun: 'Fredoka', cursive, sans-serif;
+      --font-text: 'Nunito', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: #090A1A;
+      color: #FFFFFF;
+      font-family: var(--font-text);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* CANVAS DE JUEGO PRINCIPAL */
+    #gameCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      display: block;
+    }
+
+    /* HUD SUPERIOR */
+    .hud-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(180deg, rgba(9, 10, 26, 0.9) 0%, rgba(9, 10, 26, 0) 100%);
+      pointer-events: none;
+    }
+
+    .hud-left, .hud-right {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-icon {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: transform 0.15s, background 0.15s;
+    }
+
+    .btn-icon:hover {
+      transform: scale(1.08);
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-nav-back {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-family: var(--font-fun);
+      font-size: 0.95rem;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hud-score-pill {
+      background: rgba(245, 158, 11, 0.25);
+      border: 2px solid #F59E0B;
+      color: #FCD34D;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-family: var(--font-fun);
+      font-size: 1.1rem;
+      font-weight: 700;
+      backdrop-filter: blur(8px);
+    }
+
+    /* BANNER DE MISIÓN ACTIVA (CENTRAL) */
+    .mission-banner {
+      position: absolute;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: rgba(30, 27, 75, 0.88);
+      border: 3px solid #818CF8;
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+      border-radius: 24px;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      max-width: 90%;
+      backdrop-filter: blur(12px);
+      animation: floatMission 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatMission {
+      0% { transform: translateX(-50%) translateY(0); }
+      100% { transform: translateX(-50%) translateY(4px); }
+    }
+
+    .copilot-avatar {
+      font-size: 2.5rem;
+      background: #312E81;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #A5B4FC;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .copilot-pulse {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2px solid #818CF8;
+      animation: pulse 1.8s infinite;
+      pointer-events: none;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+
+    .mission-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mission-tag {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #A5B4FC;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .mission-text {
+      font-family: var(--font-fun);
+      font-size: 1.35rem;
+      color: #FFFFFF;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .mission-voice-btn {
+      background: #4F46E5;
+      border: none;
+      color: white;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      font-size: 1.4rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 0 #3730A3;
+      flex-shrink: 0;
+      transition: transform 0.15s;
+    }
+
+    .mission-voice-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .mission-voice-btn:active {
+      transform: translateY(2px);
+    }
+
+    /* BRÚJULA / RADAR CARDINAL EN ESQUINA SUPERIOR DERECHA */
+    .radar-compass {
+      position: absolute;
+      top: 75px;
+      right: 20px;
+      width: 110px;
+      height: 110px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      border-radius: 50%;
+      z-index: 10;
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .radar-needle {
+      position: absolute;
+      width: 4px;
+      height: 46px;
+      background: linear-gradient(180deg, #EF4444 0%, transparent 100%);
+      transform-origin: 50% 100%;
+      top: 9px;
+      border-radius: 2px;
+      transition: transform 0.15s ease-out;
+    }
+
+    .radar-label {
+      position: absolute;
+      font-family: var(--font-fun);
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+    .lbl-up { top: 4px; color: var(--dir-up); }
+    .lbl-down { bottom: 4px; color: var(--dir-down); }
+    .lbl-left { left: 4px; color: var(--dir-left); }
+    .lbl-right { right: 4px; color: var(--dir-right); }
+
+    /* CONTROLES TÁCTILES INFERIORES */
+    .hud-bottom-controls {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding: 0 24px;
+      pointer-events: none;
+    }
+
+    /* JOYSTICK VIRTUAL TÁCTIL */
+    .virtual-joystick-zone {
+      pointer-events: auto;
+      width: 140px;
+      height: 140px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      position: relative;
+      touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .joystick-knob {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #6366F1, #4F46E5);
+      border: 3px solid #FFFFFF;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.6);
+      border-radius: 50%;
+      position: absolute;
+      cursor: grab;
+      touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      transition: transform 0.05s ease-out;
+    }
+
+    /* BOTONES CARDINALES RÁPIDOS */
+    .dpad-cardinal-cluster {
+      pointer-events: auto;
+      display: grid;
+      grid-template-columns: 66px 66px 66px;
+      grid-template-rows: 60px 60px 60px;
+      gap: 8px;
+      align-items: center;
+      justify-items: center;
+    }
+
+    .btn-cardinal {
+      width: 100%;
+      height: 100%;
+      border-radius: 16px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-fun);
+      font-weight: 700;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+      transition: all 0.1s;
+    }
+
+    .btn-cardinal:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 rgba(0,0,0,0.3);
+    }
+
+    .cardinal-up {
+      grid-column: 2;
+      grid-row: 1;
+      background: #3B82F6;
+      color: white;
+    }
+    .cardinal-down {
+      grid-column: 2;
+      grid-row: 3;
+      background: #10B981;
+      color: white;
+    }
+    .cardinal-left {
+      grid-column: 1;
+      grid-row: 2;
+      background: #EF4444;
+      color: white;
+    }
+    .cardinal-right {
+      grid-column: 3;
+      grid-row: 2;
+      background: #F59E0B;
+      color: #78350F;
+    }
+
+    .btn-cardinal span {
+      font-size: 1.3rem;
+    }
+    .btn-cardinal small {
+      font-size: 0.68rem;
+      letter-spacing: 0.5px;
+    }
+
+    /* HINT DE TECLADO / AYUDA */
+    .keyboard-guide-bar {
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.6);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* TOAST DE CELEBRACIÓN / FEEDBACK */
+    .toast-popup {
+      position: absolute;
+      top: 140px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.8);
+      background: #10B981;
+      color: white;
+      font-family: var(--font-fun);
+      font-size: 1.35rem;
+      font-weight: 700;
+      padding: 12px 28px;
+      border-radius: 30px;
+      box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .toast-popup.visible {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+    }
+
+    /* MODAL DE REPORTE DE VUELO */
+    .report-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(12px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .report-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .report-card {
+      background: #FFFFFF;
+      color: #1E293B;
+      border-radius: 28px;
+      max-width: 680px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 32px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .report-header {
+      text-align: center;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #E2E8F0;
+      padding-bottom: 16px;
+    }
+
+    .report-header h2 {
+      font-family: var(--font-fun);
+      font-size: 2rem;
+      color: #1E1B4B;
+    }
+
+    .report-header p {
+      color: #64748B;
+      font-size: 0.95rem;
+    }
+
+    .report-score-box {
+      background: linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 100%);
+      border: 2px solid #C7D2FE;
+      border-radius: 20px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .score-item h3 {
+      font-family: var(--font-fun);
+      font-size: 2.2rem;
+      color: #4F46E5;
+    }
+
+    .score-item span {
+      font-size: 0.85rem;
+      color: #475569;
+      font-weight: 700;
+    }
+
+    .direction-bars-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .dir-bar-card {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .dir-bar-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 0.88rem;
+      margin-bottom: 6px;
+    }
+
+    .dir-progress-bg {
+      height: 10px;
+      background: #E2E8F0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .dir-progress-fill {
+      height: 100%;
+      border-radius: 10px;
+    }
+
+    .fill-up { background: var(--dir-up); }
+    .fill-down { background: var(--dir-down); }
+    .fill-left { background: var(--dir-left); }
+    .fill-right { background: var(--dir-right); }
+
+    .report-recs {
+      background: #FFFBEB;
+      border-left: 4px solid #F59E0B;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 24px;
+    }
+
+    .report-recs h4 {
+      font-family: var(--font-fun);
+      color: #92400E;
+      margin-bottom: 4px;
+    }
+
+    .report-recs p {
+      font-size: 0.9rem;
+      color: #78350F;
+      line-height: 1.4;
+    }
+
+    .report-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .btn {
+      font-family: var(--font-fun);
+      font-size: 1.1rem;
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 16px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+      transition: transform 0.1s;
+    }
+
+    .btn:active {
+      transform: translateY(2px);
+    }
+
+    .btn-primary {
+      background: #4F46E5;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #F8FAFC;
+      border: 2px solid #CBD5E1;
+      color: #334155;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .mission-banner {
+        top: 60px;
+        padding: 10px 16px;
+      }
+      .mission-text {
+        font-size: 1.05rem;
+      }
+      .copilot-avatar {
+        width: 44px;
+        height: 44px;
+        font-size: 1.8rem;
+      }
+      .radar-compass {
+        width: 80px;
+        height: 80px;
+        top: 65px;
+        right: 12px;
+      }
+      .radar-needle {
+        height: 32px;
+      }
+      .virtual-joystick-zone {
+        width: 110px;
+        height: 110px;
+      }
+      .joystick-knob {
+        width: 48px;
+        height: 48px;
+        font-size: 1.3rem;
+      }
+      .dpad-cardinal-cluster {
+        grid-template-columns: 52px 52px 52px;
+        grid-template-rows: 48px 48px 48px;
+        gap: 6px;
+      }
+      .direction-bars-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Canvas de Simulación Espacial 2D en Tiempo Real -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- HUD Superior -->
+  <header class="hud-top">
+    <div class="hud-left">
+      <a href="index.html" class="btn-nav-back" title="Volver al Centro de Entrenamiento">
+        ⬅ Salir al Menú
+      </a>
+      <a href="camara.html" class="btn-nav-back" style="background: rgba(16, 185, 129, 0.25); border-color: #10B981; color: #A7F3D0;" title="Jugar con la cámara web">
+        📷 Modo Cámara
+      </a>
+      <div class="hud-score-pill">
+        ⭐ <span id="starCounter">0</span> Cristales
+      </div>
+    </div>
+
+    <div class="hud-right">
+      <button class="btn-icon" id="soundToggleBtn" title="Activar/Desactivar Sonido">🔊</button>
+      <button class="btn-icon" id="voiceToggleBtn" title="Activar/Desactivar Voz Copiloto">🗣️</button>
+      <button class="btn-icon" id="finishMissionBtn" title="Finalizar Misión y Ver Reporte">📋</button>
+    </div>
+  </header>
+
+  <!-- Banner de Misión Activa del Copiloto -->
+  <div class="mission-banner" id="missionBanner">
+    <div class="copilot-avatar">
+      🤖
+      <div class="copilot-pulse"></div>
+    </div>
+    <div class="mission-info">
+      <span class="mission-tag" id="missionTag">Misión Activa</span>
+      <div class="mission-text" id="missionText">¡Piloto, navega hacia la DERECHA para atrapar la estrella!</div>
+    </div>
+    <button class="mission-voice-btn" id="voiceRepeatBtn" title="Repetir orden del copiloto">
+      🔊
+    </button>
+  </div>
+
+  <!-- Brújula / Radar Cardinal -->
+  <div class="radar-compass" id="radarCompass" title="Radar Espacial Cardinal">
+    <span class="radar-label lbl-up">⬆️ ARRIBA</span>
+    <span class="radar-label lbl-down">⬇️ ABAJO</span>
+    <span class="radar-label lbl-left">⬅️ IZQ</span>
+    <span class="radar-label lbl-right">DER ➡️</span>
+    <div class="radar-needle" id="radarNeedle"></div>
+  </div>
+
+  <!-- Toast de Celebración -->
+  <div class="toast-popup" id="toastPopup">¡Excelente maniobra! ⭐</div>
+
+  <!-- Guía de teclado -->
+  <div class="keyboard-guide-bar">
+    🎮 Usa las <strong>flechas del teclado</strong> (⬆️ ⬇️ ⬅️ ➡️) o los controles táctiles en pantalla.
+  </div>
+
+  <!-- Controles Táctiles Inferiores -->
+  <footer class="hud-bottom-controls">
+    <!-- Joystick Virtual -->
+    <div class="virtual-joystick-zone" id="joystickZone">
+      <div class="joystick-knob" id="joystickKnob">🚀</div>
+    </div>
+
+    <!-- D-Pad Cardinal Rápido -->
+    <div class="dpad-cardinal-cluster">
+      <button class="btn-cardinal cardinal-up" id="btnPadUp" data-dir="arriba">
+        <span>⬆️</span>
+        <small>ARRIBA</small>
+      </button>
+      <button class="btn-cardinal cardinal-left" id="btnPadLeft" data-dir="izquierda">
+        <span>⬅️</span>
+        <small>IZQ</small>
+      </button>
+      <button class="btn-cardinal cardinal-right" id="btnPadRight" data-dir="derecha">
+        <span>➡️</span>
+        <small>DER</small>
+      </button>
+      <button class="btn-cardinal cardinal-down" id="btnPadDown" data-dir="abajo">
+        <span>⬇️</span>
+        <small>ABAJO</small>
+      </button>
+    </div>
+  </footer>
+
+  <!-- Modal de Reporte de Vuelo Interactivo -->
+  <div class="report-overlay" id="reportOverlay">
+    <div class="report-card">
+      <div class="report-header">
+        <span style="font-size: 3rem;">🎖️🚀</span>
+        <h2>INFORME DE VUELO Y UBICACIÓN ESPACIAL</h2>
+        <p>Evaluación de coordinación viso-motriz, agilidad mental y orientación cardinal</p>
+      </div>
+
+      <div class="report-score-box">
+        <div class="score-item">
+          <h3 id="repGlobalScore">95</h3>
+          <span>Índice de Destreza</span>
+        </div>
+        <div class="score-item">
+          <h3 id="repStarsCount">8</h3>
+          <span>Objetivos Cumplidos</span>
+        </div>
+        <div class="score-item">
+          <h3 id="repFlightTime">1m 45s</h3>
+          <span>Tiempo de Misión</span>
+        </div>
+      </div>
+
+      <h4 style="font-family: var(--font-fun); margin-bottom: 12px; color: #1E1B4B;">
+        Precisión por Cuadrante Espacial:
+      </h4>
+      <div class="direction-bars-grid">
+        <div class="dir-bar-card">
+          <div class="dir-bar-header">
+            <span>⬆️ Sector ARRIBA (Cielo)</span>
+            <span id="repPctUp">100%</span>
+          </div>
+          <div class="dir-progress-bg">
+            <div class="dir-progress-fill fill-up" id="repBarUp" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <div class="dir-bar-card">
+          <div class="dir-bar-header">
+            <span>⬇️ Sector ABAJO (Tierra)</span>
+            <span id="repPctDown">100%</span>
+          </div>
+          <div class="dir-progress-bg">
+            <div class="dir-progress-fill fill-down" id="repBarDown" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <div class="dir-bar-card">
+          <div class="dir-bar-header">
+            <span>⬅️ Sector IZQUIERDA (Rojo)</span>
+            <span id="repPctLeft">85%</span>
+          </div>
+          <div class="dir-progress-bg">
+            <div class="dir-progress-fill fill-left" id="repBarLeft" style="width: 85%;"></div>
+          </div>
+        </div>
+
+        <div class="dir-bar-card">
+          <div class="dir-bar-header">
+            <span>➡️ Sector DERECHA (Verde)</span>
+            <span id="repPctRight">90%</span>
+          </div>
+          <div class="dir-progress-bg">
+            <div class="dir-progress-fill fill-right" id="repBarRight" style="width: 90%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-recs" id="repRecommendations">
+        <h4>💡 Recomendación Psicopedagógica:</h4>
+        <p id="repRecText">
+          ¡Brillante vuelo! El explorador tiene un dominio ágil del espacio bidimensional. Recomendamos seguir practicando juegos motores cruzados en la vida diaria.
+        </p>
+      </div>
+
+      <div class="report-actions">
+        <button class="btn btn-primary" id="btnRestartFlight">
+          🔄 Volver a Volar
+        </button>
+        <button class="btn btn-secondary" onclick="window.print()">
+          🖨️ Imprimir Reporte
+        </button>
+        <a href="index.html" class="btn btn-secondary" style="text-decoration: none;">
+          🏠 Menú Principal
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- LÓGICA DEL MOTOR DE JUEGO INTERACTIVO -->
+  <script>
+    /* ==========================================================
+       1. SISTEMA DE AUDIO Y VOZ SINTETIZADA
+       ========================================================== */
+    class FlightAudio {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.synth = window.speechSynthesis || null;
+        this.voice = null;
+
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
+
+        if (this.synth) {
+          this.initVoice();
+          if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = () => this.initVoice();
+          }
+        }
+      }
+
+      initVoice() {
+        if (!this.synth) return;
+        const voices = this.synth.getVoices();
+        const es = voices.filter(v => v.lang.startsWith('es'));
+        this.voice = es.find(v => v.name.includes('Google') || v.name.includes('Natural')) || es[0];
+      }
+
+      speak(text) {
+        if (!this.enabled || !this.synth) return;
+        try {
+          this.synth.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = 'es-ES';
+          u.rate = 0.95;
+          u.pitch = 1.1;
+          if (this.voice) u.voice = this.voice;
+          this.synth.speak(u);
+        } catch (e) {}
+      }
+
+      playChime() {
+        if (!this.enabled || !this.ctx) return;
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+
+        const notes = [587.33, 739.99, 880, 1174.66]; // D5, F#5, A5, D6
+        const now = this.ctx.currentTime;
+        notes.forEach((f, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, now + i * 0.07);
+          gain.gain.setValueAtTime(0, now + i * 0.07);
+          gain.gain.linearRampToValueAtTime(0.2, now + i * 0.07 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.3);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.07);
+          osc.stop(now + i * 0.07 + 0.32);
+        });
+      }
+
+      playThrust() {
+        if (!this.enabled || !this.ctx) return;
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.exponentialRampToValueAtTime(70, now + 0.1);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.1);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.11);
+      }
+    }
+
+    const audio = new FlightAudio();
+
+    /* ==========================================================
+       2. MOTOR GRÁFICO Y FÍSICA EN TIEMPO REAL
+       ========================================================== */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Dimensiones
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Estado del Jugador (Nave)
+    const ship = {
+      x: width / 2,
+      y: height / 2,
+      vx: 0,
+      vy: 0,
+      angle: -Math.PI / 2,
+      targetAngle: -Math.PI / 2,
+      speed: 4.5,
+      friction: 0.94,
+      radius: 28,
+      thrustParticles: []
+    };
+
+    // Estrellas de Fondo en Parallax
+    const stars = [];
+    for (let i = 0; i < 90; i++) {
+      stars.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        size: Math.random() * 2.5 + 1,
+        alpha: Math.random() * 0.8 + 0.2,
+        speed: Math.random() * 0.5 + 0.2
+      });
+    }
+
+    // Cuadrantes / Balizas Espaciales
+    const sectors = {
+      arriba: { name: 'ARRIBA', icon: '⬆️', color: '#3B82F6', label: 'Sector Norte Celeste', getPos: () => ({ x: width / 2, y: 130 }) },
+      abajo: { name: 'ABAJO', icon: '⬇️', color: '#10B981', label: 'Sector Sur Esmeralda', getPos: () => ({ x: width / 2, y: height - 140 }) },
+      izquierda: { name: 'IZQUIERDA', icon: '⬅️', color: '#EF4444', label: 'Sector Izquierdo Rubí', getPos: () => ({ x: 130, y: height / 2 }) },
+      derecha: { name: 'DERECHA', icon: '➡️', color: '#F59E0B', label: 'Sector Derecho Dorado', getPos: () => ({ x: width - 130, y: height / 2 }) }
+    };
+
+    // Coleccionables flotantes
+    let currentOrb = null;
+
+    // Métricas para el reporte
+    const flightMetrics = {
+      startTime: Date.now(),
+      starsCollected: 0,
+      byDirection: {
+        arriba: { target: 0, success: 0 },
+        abajo: { target: 0, success: 0 },
+        izquierda: { target: 0, success: 0 },
+        derecha: { target: 0, success: 0 }
+      }
+    };
+
+    // Misiones Dinámicas
+    const missionQueue = [
+      { dir: 'arriba', text: '¡Piloto! Vuela hacia ARRIBA y atrapa el Cristal Azul Celeste.' },
+      { dir: 'derecha', text: '¡Atención! Gira hacia la DERECHA (lado verde) y recoge la Estrella Solar.' },
+      { dir: 'abajo', text: '¡Desciende hacia ABAJO! El Cristal Esmeralda te espera cerca del planeta.' },
+      { dir: 'izquierda', text: '¡Maniobra hacia la IZQUIERDA (lado rojo del corazón)! ¡Atrapa el Rubí!' },
+      { dir: 'derecha', text: '¡Aceleración! Vuela rápido a la DERECHA para activar el satélite.' },
+      { dir: 'arriba', text: '¡Sube hacia ARRIBA de nuevo! Recoge el cristal superior.' },
+      { dir: 'izquierda', text: '¡Gira hacia la IZQUIERDA! Esquiva los cometas y rescata la joya.' },
+      { dir: 'abajo', text: '¡Última misión! Aterriza hacia ABAJO para completar tu vuelo.' }
+    ];
+
+    let missionIndex = 0;
+    let activeDirection = 'arriba';
+
+    function spawnOrb(dirKey) {
+      const pos = sectors[dirKey].getPos();
+      currentOrb = {
+        x: pos.x,
+        y: pos.y,
+        radius: 32,
+        color: sectors[dirKey].color,
+        icon: sectors[dirKey].icon,
+        dir: dirKey,
+        pulse: 0
+      };
+      flightMetrics.byDirection[dirKey].target++;
+    }
+
+    function setMission(idx) {
+      if (idx >= missionQueue.length) {
+        showReport();
+        return;
+      }
+
+      missionIndex = idx;
+      const m = missionQueue[idx];
+      activeDirection = m.dir;
+      spawnOrb(m.dir);
+
+      document.getElementById('missionText').textContent = m.text;
+      document.getElementById('missionTag').textContent = `Misión ${idx + 1} de ${missionQueue.length}`;
+      audio.speak(m.text);
+    }
+
+    /* ==========================================================
+       3. CONTROLES: JOYSTICK, TECLADO Y BOTONES CARDINALES
+       ========================================================== */
+    const keysPressed = {};
+    window.addEventListener('keydown', (e) => {
+      keysPressed[e.key] = true;
+    });
+    window.addEventListener('keyup', (e) => {
+      keysPressed[e.key] = false;
+    });
+
+    // Botones cardinales
+    document.querySelectorAll('.btn-cardinal').forEach(btn => {
+      const applyDir = (dir) => {
+        const impulses = {
+          arriba: { x: 0, y: -ship.speed * 1.5, angle: -Math.PI / 2 },
+          abajo: { x: 0, y: ship.speed * 1.5, angle: Math.PI / 2 },
+          izquierda: { x: -ship.speed * 1.5, y: 0, angle: Math.PI },
+          derecha: { x: ship.speed * 1.5, y: 0, angle: 0 }
+        };
+        const imp = impulses[dir];
+        ship.vx = imp.x;
+        ship.vy = imp.y;
+        ship.targetAngle = imp.angle;
+        audio.playThrust();
+      };
+
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        applyDir(btn.dataset.dir);
+      });
+    });
+
+    // Joystick Virtual
+    const joystickZone = document.getElementById('joystickZone');
+    const joystickKnob = document.getElementById('joystickKnob');
+    let joystickActive = false;
+    let joystickCenter = { x: 0, y: 0 };
+
+    joystickZone.addEventListener('pointerdown', (e) => {
+      joystickActive = true;
+      const rect = joystickZone.getBoundingClientRect();
+      joystickCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      handleJoystickMove(e);
+      joystickZone.setPointerCapture(e.pointerId);
+    });
+
+    joystickZone.addEventListener('pointermove', (e) => {
+      if (!joystickActive) return;
+      handleJoystickMove(e);
+    });
+
+    function resetJoystick() {
+      joystickActive = false;
+      joystickKnob.style.transform = `translate(0px, 0px)`;
+    }
+
+    joystickZone.addEventListener('pointerup', resetJoystick);
+    joystickZone.addEventListener('pointercancel', resetJoystick);
+
+    function handleJoystickMove(e) {
+      const dx = e.clientX - joystickCenter.x;
+      const dy = e.clientY - joystickCenter.y;
+      const dist = Math.hypot(dx, dy);
+      const maxRadius = 45;
+
+      const angle = Math.atan2(dy, dx);
+      const clampedDist = Math.min(dist, maxRadius);
+      const kx = Math.cos(angle) * clampedDist;
+      const ky = Math.sin(angle) * clampedDist;
+
+      joystickKnob.style.transform = `translate(${kx}px, ${ky}px)`;
+
+      if (dist > 8) {
+        ship.vx = Math.cos(angle) * ship.speed;
+        ship.vy = Math.sin(angle) * ship.speed;
+        ship.targetAngle = angle;
+      }
+    }
+
+    // Repetir voz botón
+    document.getElementById('voiceRepeatBtn').addEventListener('click', () => {
+      audio.speak(missionQueue[missionIndex].text);
+    });
+
+    // Silenciar
+    document.getElementById('soundToggleBtn').addEventListener('click', function() {
+      audio.enabled = !audio.enabled;
+      this.textContent = audio.enabled ? '🔊' : '🔇';
+    });
+
+    document.getElementById('voiceToggleBtn').addEventListener('click', function() {
+      if (audio.synth) {
+        audio.synth.cancel();
+      }
+      this.textContent = this.textContent === '🗣️' ? '🤐' : '🗣️';
+    });
+
+    document.getElementById('finishMissionBtn').addEventListener('click', () => {
+      showReport();
+    });
+
+    document.getElementById('btnRestartFlight').addEventListener('click', () => {
+      document.getElementById('reportOverlay').classList.remove('active');
+      flightMetrics.starsCollected = 0;
+      flightMetrics.startTime = Date.now();
+      document.getElementById('starCounter').textContent = '0';
+      setMission(0);
+    });
+
+    /* ==========================================================
+       4. BUCLE PRINCIPAL DE ANIMACIÓN Y FÍSICA
+       ========================================================== */
+    function update() {
+      // Entrada por teclado
+      let movedByKeyboard = false;
+      if (keysPressed['ArrowUp'] || keysPressed['w'] || keysPressed['W']) {
+        ship.vy -= 0.6;
+        ship.targetAngle = -Math.PI / 2;
+        movedByKeyboard = true;
+      }
+      if (keysPressed['ArrowDown'] || keysPressed['s'] || keysPressed['S']) {
+        ship.vy += 0.6;
+        ship.targetAngle = Math.PI / 2;
+        movedByKeyboard = true;
+      }
+      if (keysPressed['ArrowLeft'] || keysPressed['a'] || keysPressed['A']) {
+        ship.vx -= 0.6;
+        ship.targetAngle = Math.PI;
+        movedByKeyboard = true;
+      }
+      if (keysPressed['ArrowRight'] || keysPressed['d'] || keysPressed['D']) {
+        ship.vx += 0.6;
+        ship.targetAngle = 0;
+        movedByKeyboard = true;
+      }
+
+      // Aplicar fricción y velocidad máxima
+      ship.vx *= ship.friction;
+      ship.vy *= ship.friction;
+
+      const currentSpeed = Math.hypot(ship.vx, ship.vy);
+      if (currentSpeed > ship.speed * 1.6) {
+        ship.vx = (ship.vx / currentSpeed) * ship.speed * 1.6;
+        ship.vy = (ship.vy / currentSpeed) * ship.speed * 1.6;
+      }
+
+      ship.x += ship.vx;
+      ship.y += ship.vy;
+
+      // Límites con rebote suave
+      const pad = ship.radius;
+      if (ship.x < pad) { ship.x = pad; ship.vx = -ship.vx * 0.5; }
+      if (ship.x > width - pad) { ship.x = width - pad; ship.vx = -ship.vx * 0.5; }
+      if (ship.y < pad + 60) { ship.y = pad + 60; ship.vy = -ship.vy * 0.5; }
+      if (ship.y > height - pad - 60) { ship.y = height - pad - 60; ship.vy = -ship.vy * 0.5; }
+
+      // Rotación suave hacia el objetivo
+      let angleDiff = ship.targetAngle - ship.angle;
+      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+      ship.angle += angleDiff * 0.15;
+
+      // Partículas del motor si hay movimiento
+      if (currentSpeed > 0.4) {
+        ship.thrustParticles.push({
+          x: ship.x - Math.cos(ship.angle) * 22,
+          y: ship.y - Math.sin(ship.angle) * 22,
+          vx: -Math.cos(ship.angle) * 2 + (Math.random() - 0.5),
+          vy: -Math.sin(ship.angle) * 2 + (Math.random() - 0.5),
+          size: Math.random() * 5 + 3,
+          alpha: 1,
+          color: Math.random() > 0.5 ? '#F59E0B' : '#EF4444'
+        });
+      }
+
+      // Actualizar partículas
+      for (let i = ship.thrustParticles.length - 1; i >= 0; i--) {
+        const p = ship.thrustParticles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.05;
+        p.size *= 0.95;
+        if (p.alpha <= 0) ship.thrustParticles.splice(i, 1);
+      }
+
+      // Comprobar colisión con el orbe
+      if (currentOrb) {
+        currentOrb.pulse += 0.05;
+        const distToOrb = Math.hypot(ship.x - currentOrb.x, ship.y - currentOrb.y);
+        if (distToOrb < ship.radius + currentOrb.radius) {
+          collectOrb();
+        }
+
+        // Actualizar aguja de radar
+        const angleToTarget = Math.atan2(currentOrb.y - ship.y, currentOrb.x - ship.x);
+        document.getElementById('radarNeedle').style.transform = `rotate(${angleToTarget + Math.PI / 2}rad)`;
+      }
+    }
+
+    function collectOrb() {
+      flightMetrics.starsCollected++;
+      flightMetrics.byDirection[currentOrb.dir].success++;
+      document.getElementById('starCounter').textContent = flightMetrics.starsCollected;
+
+      audio.playChime();
+      showToast(`¡Excelente! ⭐ Llegaste a ${currentOrb.dir.toUpperCase()}`);
+
+      currentOrb = null;
+
+      setTimeout(() => {
+        setMission(missionIndex + 1);
+      }, 1000);
+    }
+
+    function showToast(text) {
+      const toast = document.getElementById('toastPopup');
+      toast.textContent = text;
+      toast.classList.add('visible');
+      setTimeout(() => {
+        toast.classList.remove('visible');
+      }, 1400);
+    }
+
+    /* ==========================================================
+       5. RENDERIZADO VISUAL EN CANVAS
+       ========================================================== */
+    function render() {
+      ctx.clearRect(0, 0, width, height);
+
+      // Fondo estelar con parallax
+      stars.forEach(s => {
+        ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+        s.y += s.speed;
+        if (s.y > height) s.y = 0;
+      });
+
+      // Dibujar 4 balizas cardinales sutiles
+      Object.keys(sectors).forEach(k => {
+        const sec = sectors[k];
+        const pos = sec.getPos();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 42, 0, Math.PI * 2);
+        ctx.strokeStyle = sec.color;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 6]);
+        ctx.stroke();
+
+        ctx.font = 'bold 12px Fredoka, sans-serif';
+        ctx.fillStyle = sec.color;
+        ctx.textAlign = 'center';
+        ctx.fillText(sec.name, pos.x, pos.y + 4);
+        ctx.restore();
+      });
+
+      // Dibujar partículas de fuego de la nave
+      ship.thrustParticles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Dibujar Orbe Coleccionable
+      if (currentOrb) {
+        ctx.save();
+        const pulseSize = Math.sin(currentOrb.pulse) * 4;
+
+        // Aura brillante
+        ctx.beginPath();
+        ctx.arc(currentOrb.x, currentOrb.y, currentOrb.radius + 12 + pulseSize, 0, Math.PI * 2);
+        ctx.fillStyle = currentOrb.color + '33';
+        ctx.fill();
+
+        // Núcleo
+        ctx.beginPath();
+        ctx.arc(currentOrb.x, currentOrb.y, currentOrb.radius + pulseSize, 0, Math.PI * 2);
+        ctx.fillStyle = currentOrb.color;
+        ctx.fill();
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Icono / Emoji
+        ctx.font = '24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('⭐', currentOrb.x, currentOrb.y);
+        ctx.restore();
+      }
+
+      // Dibujar Nave Espacial del Niño
+      ctx.save();
+      ctx.translate(ship.x, ship.y);
+      ctx.rotate(ship.angle);
+
+      // Sombra proyectada
+      ctx.shadowColor = 'rgba(79, 70, 229, 0.7)';
+      ctx.shadowBlur = 18;
+
+      // Alas
+      ctx.beginPath();
+      ctx.moveTo(-16, -20);
+      ctx.lineTo(8, 0);
+      ctx.lineTo(-16, 20);
+      ctx.lineTo(-10, 0);
+      ctx.closePath();
+      ctx.fillStyle = '#6366F1';
+      ctx.fill();
+
+      // Fuselaje principal
+      ctx.beginPath();
+      ctx.moveTo(24, 0);
+      ctx.lineTo(-18, -13);
+      ctx.lineTo(-12, 0);
+      ctx.lineTo(-18, 13);
+      ctx.closePath();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+
+      // Cabina / Ventana
+      ctx.beginPath();
+      ctx.ellipse(4, 0, 7, 5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#38BDF8';
+      ctx.fill();
+
+      // Punta roja
+      ctx.beginPath();
+      ctx.moveTo(24, 0);
+      ctx.lineTo(14, -5);
+      ctx.lineTo(14, 5);
+      ctx.closePath();
+      ctx.fillStyle = '#EF4444';
+      ctx.fill();
+
+      ctx.restore();
+
+      requestAnimationFrame(loop);
+    }
+
+    function loop() {
+      update();
+      render();
+    }
+
+    // Iniciar loop
+    requestAnimationFrame(loop);
+
+    // Iniciar Misión 1 tras breve retardo
+    setTimeout(() => {
+      setMission(0);
+    }, 800);
+
+    /* ==========================================================
+       6. REPORTE FINAL DE LA AVENTURA
+       ========================================================== */
+    function showReport() {
+      const flightSeconds = Math.max(1, Math.round((Date.now() - flightMetrics.startTime) / 1000));
+      const min = Math.floor(flightSeconds / 60);
+      const sec = flightSeconds % 60;
+
+      document.getElementById('repFlightTime').textContent = `${min}m ${sec}s`;
+      document.getElementById('repStarsCount').textContent = `${flightMetrics.starsCollected} / ${missionQueue.length}`;
+
+      // Cálculos porcentuales
+      const calcPct = (dir) => {
+        const d = flightMetrics.byDirection[dir];
+        return d.target > 0 ? Math.round((d.success / d.target) * 100) : 100;
+      };
+
+      const pctUp = calcPct('arriba');
+      const pctDown = calcPct('abajo');
+      const pctLeft = calcPct('izquierda');
+      const pctRight = calcPct('derecha');
+
+      document.getElementById('repPctUp').textContent = `${pctUp}%`;
+      document.getElementById('repPctDown').textContent = `${pctDown}%`;
+      document.getElementById('repPctLeft').textContent = `${pctLeft}%`;
+      document.getElementById('repPctRight').textContent = `${pctRight}%`;
+
+      document.getElementById('repBarUp').style.width = `${pctUp}%`;
+      document.getElementById('repBarDown').style.width = `${pctDown}%`;
+      document.getElementById('repBarLeft').style.width = `${pctLeft}%`;
+      document.getElementById('repBarRight').style.width = `${pctRight}%`;
+
+      const globalAvg = Math.round((pctUp + pctDown + pctLeft + pctRight) / 4);
+      document.getElementById('repGlobalScore').textContent = globalAvg;
+
+      const recText = document.getElementById('repRecText');
+      if (pctLeft < 80 || pctRight < 80) {
+        recText.textContent = "El piloto demostró gran entusiasmo. Para afianzar la diferencia entre Izquierda y Derecha, recomendamos realizar actividades cotidianas usando la pulsera roja en la izquierda y verde en la derecha.";
+      } else {
+        recText.textContent = "¡Sobresaliente! El piloto comprende con notable fluidez y precisión los 4 cuadrantes espaciales en movimiento activo. ¡Coordinación y reflejos de nivel superior!";
+      }
+
+      document.getElementById('reportOverlay').classList.add('active');
+      audio.speak("¡Misión completada, comandante espacial! Aquí tienes tu reporte de vuelo.");
+    }
+  </script>
+</body>
+</html>
